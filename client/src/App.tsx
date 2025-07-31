@@ -8,12 +8,14 @@ import QRDisplay from "@/pages/qr-display";
 import CheckIn from "@/pages/checkin";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
+import GlobalAdmin from "@/pages/global-admin";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/admin" component={GlobalAdmin} />
       <Route path="/qr/:id" component={QRDisplay} />
       <Route path="/checkin/:id" component={CheckIn} />
       <Route path="/admin-login/:id" component={AdminLogin} />

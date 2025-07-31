@@ -194,11 +194,13 @@ export default function Home() {
         </Card>
 
         <div className="text-center">
-          <p className="text-sm text-gray-500 mb-2">Already have an event?</p>
-          <Button variant="ghost" className="text-primary font-medium hover:text-blue-700">
-            <Settings className="mr-2 h-4 w-4" />
-            Access Admin Dashboard
-          </Button>
+          <p className="text-sm text-gray-500 mb-2">Already have events?</p>
+          <Link href="/admin">
+            <Button variant="ghost" className="text-primary font-medium hover:text-blue-700">
+              <Settings className="mr-2 h-4 w-4" />
+              View All Events
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

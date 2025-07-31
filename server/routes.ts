@@ -34,16 +34,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all events
-  app.get("/api/events", async (req, res) => {
-    try {
-      const events = await storage.getAllEvents();
-      res.json(events);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to get events" });
-    }
-  });
-
   // Get event by name
   app.get("/api/events/by-name/:name", async (req, res) => {
     try {

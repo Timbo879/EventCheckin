@@ -2,11 +2,17 @@
 
 ## Overview
 
-This is a full-stack event check-in application built with React, Express, and PostgreSQL. The system allows users to create events, generate QR codes for check-ins, and manage attendee check-ins through a web interface. It features both public check-in functionality and password-protected admin dashboards.
+This is a full-stack event check-in application built with React, Express, and PostgreSQL designed specifically for charity events. The system allows organizers to create events, generate QR codes for check-ins, and manage employee check-ins through a mobile-first web interface. It features data minimization (only 6-digit employee IDs), public check-in functionality, and password-protected admin dashboards with CSV export capabilities.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes
+
+- **July 31, 2025**: Completed full event check-in system implementation
+- **July 31, 2025**: Resolved corporate firewall blocking preview access - suggested deployment as solution
+- **App Status**: Fully functional with all requested features implemented
 
 ## System Architecture
 

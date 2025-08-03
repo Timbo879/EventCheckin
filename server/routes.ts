@@ -60,6 +60,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // Check for duplicate check-in
+      const existingCheckin = await storage.getCheckinByEventAndEmployee(checkinData.eventId, checkinData.employeeId);
+      if (existingCheckin) {
+        res.status(409).json({ message: "You've already checked in for this event." });
+        return;
+      }
+
       const checkin = await storage.createCheckin(checkinData);
       res.json(checkin);
     } catch (error) {
@@ -81,26 +88,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Verify admin password
-  app.post("/api/events/:id/verify-admin", async (req, res) => {
+  // Get all events for admin dashboard
+  app.get("/api/events", async (req, res) => {
     try {
-      const { password } = req.body;
-      const event = await storage.getEvent(req.params.id);
-      
-      if (!event) {
-        res.status(404).json({ message: "Event not found" });
-        return;
-      }
-
-      if (!event.passwordProtected) {
-        res.json({ valid: true });
-        return;
-      }
-
-      const valid = event.adminPassword === password;
-      res.json({ valid });
+      const events = await storage.getAllEvents();
+      res.json(events);
     } catch (error) {
-      res.status(500).json({ message: "Failed to verify password" });
+      res.status(500).json({ message: "Failed to get events" });
     }
   });
 

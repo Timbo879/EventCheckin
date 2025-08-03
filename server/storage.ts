@@ -13,6 +13,7 @@ export interface IStorage {
   getCheckinsByEventId(eventId: string): Promise<Checkin[]>;
   getCheckinsWithEventDetails(eventId: string): Promise<CheckinWithEvent[]>;
   getAllCheckins(): Promise<Checkin[]>;
+  getCheckinByEventAndEmployee(eventId: string, employeeId: string): Promise<Checkin | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -29,6 +30,8 @@ export class MemStorage implements IStorage {
     const event: Event = {
       ...insertEvent,
       id,
+      passwordProtected: insertEvent.passwordProtected ?? false,
+      adminPassword: insertEvent.adminPassword ?? null,
       createdAt: new Date(),
     };
     this.events.set(id, event);
@@ -80,6 +83,12 @@ export class MemStorage implements IStorage {
 
   async getAllCheckins(): Promise<Checkin[]> {
     return Array.from(this.checkins.values());
+  }
+
+  async getCheckinByEventAndEmployee(eventId: string, employeeId: string): Promise<Checkin | undefined> {
+    return Array.from(this.checkins.values()).find(
+      (checkin) => checkin.eventId === eventId && checkin.employeeId === employeeId,
+    );
   }
 }
 

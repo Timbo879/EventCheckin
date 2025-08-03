@@ -1,8 +1,8 @@
-# Event Check-in System
+# B-Here - Event Check-in System
 
 ## Overview
 
-This is a full-stack event check-in application built with React, Express, and PostgreSQL designed specifically for charity events. The system allows organizers to create events, generate QR codes for check-ins, and manage employee check-ins through a mobile-first web interface. It features data minimization (only 6-digit employee IDs), public check-in functionality, and password-protected admin dashboards with CSV export capabilities.
+B-Here is a streamlined event check-in application built with React, Express, and PostgreSQL designed specifically for charity events. The system allows organizers to create events, generate QR codes for check-ins, and manage employee check-ins through a mobile-first web interface. It features data minimization (only 6-digit employee IDs), duplicate check-in prevention, date validation for future events only, and an open admin dashboard for viewing all events and exporting CSV data.
 
 ## User Preferences
 
@@ -10,9 +10,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-- **July 31, 2025**: Completed full event check-in system implementation
-- **July 31, 2025**: Resolved corporate firewall blocking preview access - suggested deployment as solution
-- **App Status**: Fully functional with all requested features implemented
+- **August 3, 2025**: Complete rebrand to "B-Here" throughout the application
+- **August 3, 2025**: Removed all password protection - admin dashboard now open access
+- **August 3, 2025**: Added duplicate check-in prevention with friendly error messages
+- **August 3, 2025**: Implemented date validation - events can only be created for today/future dates
+- **August 3, 2025**: Redesigned admin dashboard to show all events in organized sections
+- **App Status**: Fully functional B-Here system with enhanced user experience
 
 ## System Architecture
 
@@ -40,9 +43,10 @@ Preferred communication style: Simple, everyday language.
 ## Key Components
 
 ### Database Schema (shared/schema.ts)
-- **Events Table**: Stores event information with optional password protection
-- **Check-ins Table**: Records employee check-ins linked to events
-- **Validation**: Zod schemas for runtime type checking and validation
+- **Events Table**: Stores event information (password fields retained for backwards compatibility)
+- **Check-ins Table**: Records employee check-ins linked to events with duplicate prevention
+- **Validation**: Zod schemas with date validation and employee ID format checking
+- **Duplicate Prevention**: Server-side validation prevents same employee checking in twice per event
 
 ### API Endpoints (server/routes.ts)
 - `POST /api/events` - Create new events
@@ -51,11 +55,11 @@ Preferred communication style: Simple, everyday language.
 - Event-specific check-in and admin routes
 
 ### Frontend Pages
-- **Home**: Event creation with form validation
-- **QR Display**: Shows generated QR codes for events
-- **Check-in**: Public interface for employee check-ins
-- **Admin Login**: Password-protected admin access
-- **Admin Dashboard**: Event management and check-in monitoring
+- **Home**: B-Here branded event creation with date validation (future dates only)
+- **QR Display**: Shows generated QR codes for events with B-Here branding
+- **Check-in**: Public interface for employee check-ins with duplicate prevention
+- **Admin Dashboard**: Open-access dashboard showing all events organized by upcoming/past
+- **Removed**: Admin login page (no longer needed without password protection)
 
 ### UI Components
 - Comprehensive shadcn/ui component library
@@ -64,9 +68,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Data Flow
 
-1. **Event Creation**: Admin creates event through form → API stores in database → QR code generated
-2. **Check-in Process**: Employee scans QR → Redirected to check-in page → Enters employee ID → Recorded in database
-3. **Admin Monitoring**: Admin accesses dashboard → Views real-time check-in data → Can export CSV reports
+1. **Event Creation**: User creates event through B-Here form → Date validation (future only) → API stores in database → QR code generated
+2. **Check-in Process**: Employee scans QR → Redirected to B-Here check-in page → Enters 6-digit employee ID → Duplicate check → Recorded in database with friendly error handling
+3. **Admin Monitoring**: Anyone can access open admin dashboard → Views all events organized by status → Can export CSV reports for any event
 
 ## External Dependencies
 

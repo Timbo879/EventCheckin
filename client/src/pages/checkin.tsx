@@ -51,7 +51,10 @@ export default function CheckIn() {
       });
     },
     onError: (error: any) => {
-      const message = error.message || "Failed to check in. Please try again.";
+      let message = "Failed to check in. Please try again.";
+      if (error.message && error.message.includes("already checked in")) {
+        message = "You've already checked in for this event.";
+      }
       toast({
         title: "Check-in Failed",
         description: message,
@@ -104,7 +107,7 @@ export default function CheckIn() {
             <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="text-white text-2xl h-8 w-8" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Event Check-in</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">B-Here Check-in</h1>
             <p className="text-gray-600">{event.name}</p>
             <p className="text-sm text-gray-500">{event.date}</p>
           </div>
@@ -145,7 +148,7 @@ export default function CheckIn() {
           <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="text-white text-2xl h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Event Check-in</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">B-Here Check-in</h1>
           <p className="text-gray-600">{event.name}</p>
           <p className="text-sm text-gray-500">{event.date}</p>
         </div>

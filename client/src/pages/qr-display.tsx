@@ -116,7 +116,7 @@ export default function QRDisplay() {
         </div>
 
         <div className="mt-4 text-center">
-          <Link href={`/admin-login/${event.id}`}>
+          <Link href="/admin">
             <Button variant="ghost" className="text-primary hover:text-blue-700">
               View Admin Dashboard
             </Button>

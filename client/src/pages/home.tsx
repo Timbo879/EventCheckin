@@ -23,7 +23,7 @@ export default function Home() {
       name: "",
       date: "",
       passwordProtected: false,
-      adminPassword: "",
+      adminPassword: null,
     },
   });
 
@@ -48,7 +48,7 @@ export default function Home() {
     },
   });
 
-  const passwordProtected = form.watch("passwordProtected");
+
 
   const onSubmit = (data: typeof insertEventSchema._type) => {
     createEventMutation.mutate(data);
@@ -83,7 +83,7 @@ export default function Home() {
                     View QR Code
                   </Button>
                 </Link>
-                <Link href={`/admin-login/${createdEvent.id}`}>
+                <Link href={`/admin`}>
                   <Button variant="outline" className="w-full">
                     <Settings className="mr-2 h-4 w-4" />
                     Admin Dashboard
@@ -110,8 +110,8 @@ export default function Home() {
           <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
             <QrCode className="text-white text-2xl h-8 w-8" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Event Check-in</h1>
-          <p className="text-gray-600">Generate QR codes for charity event check-ins</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">B-Here</h1>
+          <p className="text-gray-600">Simple employee check-in system for events</p>
         </div>
 
         <Card className="mb-6">
@@ -146,39 +146,7 @@ export default function Home() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="passwordProtected"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Password protect admin access</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
 
-                {passwordProtected && (
-                  <FormField
-                    control={form.control}
-                    name="adminPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Admin Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="Enter admin password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
 
                 <Button 
                   type="submit" 
@@ -194,11 +162,13 @@ export default function Home() {
         </Card>
 
         <div className="text-center">
-          <p className="text-sm text-gray-500 mb-2">Already have an event?</p>
-          <Button variant="ghost" className="text-primary font-medium hover:text-blue-700">
-            <Settings className="mr-2 h-4 w-4" />
-            Access Admin Dashboard
-          </Button>
+          <p className="text-sm text-gray-500 mb-2">View all events and check-ins</p>
+          <Link href="/admin">
+            <Button variant="ghost" className="text-primary font-medium hover:text-blue-700">
+              <Settings className="mr-2 h-4 w-4" />
+              Admin Dashboard
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

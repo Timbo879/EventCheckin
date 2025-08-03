@@ -19,16 +19,25 @@ export const checkins = pgTable("checkins", {
   timestamp: timestamp("timestamp").notNull().default(sql`now()`),
 });
 
-export const insertEventSchema = createInsertSchema(events).omit({
-  id: true,
-  createdAt: true,
-});
+
 
 export const insertCheckinSchema = createInsertSchema(checkins).omit({
   id: true,
   timestamp: true,
 }).extend({
   employeeId: z.string().regex(/^\d{6}$/, "Employee ID must be exactly 6 digits"),
+});
+
+export const insertEventSchema = createInsertSchema(events).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  date: z.string().refine((date) => {
+    const eventDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventDate >= today;
+  }, "Event date must be today or in the future"),
 });
 
 export type InsertEvent = z.infer<typeof insertEventSchema>;

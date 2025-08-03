@@ -1,18 +1,152 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Home, Users, Calendar, Download, RefreshCw, QrCode, Plus } from "lucide-react";
+import { Home, Users, Calendar, Download, RefreshCw, QrCode, Plus, ChevronDown, ChevronUp, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { type Event, type CheckinWithEvent } from "@shared/schema";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { type Event, type CheckinWithEvent, type Checkin } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+
+interface EventRowProps {
+  event: Event;
+  isExpanded: boolean;
+  onToggleExpansion: () => void;
+  onExportCSV: () => void;
+}
+
+function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV }: EventRowProps) {
+  const { data: checkins = [], isLoading: checkinsLoading } = useQuery<Checkin[]>({
+    queryKey: ["/api/events", event.id, "checkins"],
+    enabled: isExpanded,
+  });
+
+  const sortedCheckins = checkins.sort((a, b) => 
+    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+
+  return (
+    <Collapsible open={isExpanded} onOpenChange={onToggleExpansion}>
+      <div className="border-b border-gray-200 last:border-b-0">
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer">
+            <div className="flex items-center space-x-4">
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-gray-900">{event.name}</h3>
+                <p className="text-sm text-gray-600">{new Date(event.date).toLocaleDateString()}</p>
+              </div>
+              <Badge variant="outline" className="ml-2">
+                {checkins.length} check-ins
+              </Badge>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Link href={`/qr/${event.id}`}>
+                <Button size="sm" variant="outline" onClick={(e) => e.stopPropagation()}>
+                  <QrCode className="mr-1 h-3 w-3" />
+                  QR Code
+                </Button>
+              </Link>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onExportCSV();
+                }}
+              >
+                <Download className="mr-1 h-3 w-3" />
+                Export
+              </Button>
+              <Button size="sm" variant="ghost">
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent>
+          <div className="px-4 pb-4">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-900">Check-in Details</h4>
+                <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                  {checkins.length} Total
+                </Badge>
+              </div>
+              
+              {checkinsLoading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-600">Loading check-ins...</p>
+                </div>
+              ) : checkins.length === 0 ? (
+                <div className="text-center py-4">
+                  <Users className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-600">No check-ins yet</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Employees can scan the QR code to check in
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {sortedCheckins.map((checkin, index) => (
+                    <div 
+                      key={checkin.id} 
+                      className="flex items-center justify-between p-3 bg-white rounded border"
+                    >
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mr-3">
+                          <span className="text-white text-xs font-bold">
+                            {index + 1}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-mono font-medium text-gray-900">
+                            Employee ID: {checkin.employeeId}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {new Date(checkin.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                        Checked In
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
 
 export default function AdminDashboard() {
   const { toast } = useToast();
+  const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
   const { data: events = [], isLoading: eventsLoading, refetch: refetchEvents } = useQuery<Event[]>({
     queryKey: ["/api/events"],
   });
+
+  const toggleEventExpansion = (eventId: string) => {
+    const newExpanded = new Set(expandedEvents);
+    if (newExpanded.has(eventId)) {
+      newExpanded.delete(eventId);
+    } else {
+      newExpanded.add(eventId);
+    }
+    setExpandedEvents(newExpanded);
+  };
 
   const handleExportCSV = async (eventId: string, eventName: string) => {
     try {
@@ -160,50 +294,16 @@ export default function AdminDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Event Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {upcomingEvents.map((event) => (
-                      <tr key={event.id}>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          {event.name}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {new Date(event.date).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-3 text-sm space-x-2">
-                          <Link href={`/qr/${event.id}`}>
-                            <Button size="sm" variant="outline">
-                              <QrCode className="mr-1 h-3 w-3" />
-                              QR Code
-                            </Button>
-                          </Link>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleExportCSV(event.id, event.name)}
-                          >
-                            <Download className="mr-1 h-3 w-3" />
-                            Export
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-0">
+                {upcomingEvents.map((event) => (
+                  <EventRow 
+                    key={event.id} 
+                    event={event} 
+                    isExpanded={expandedEvents.has(event.id)}
+                    onToggleExpansion={() => toggleEventExpansion(event.id)}
+                    onExportCSV={() => handleExportCSV(event.id, event.name)}
+                  />
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -219,44 +319,16 @@ export default function AdminDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Event Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {pastEvents.map((event) => (
-                      <tr key={event.id}>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          {event.name}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {new Date(event.date).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-3 text-sm space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleExportCSV(event.id, event.name)}
-                          >
-                            <Download className="mr-1 h-3 w-3" />
-                            Export Data
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="space-y-0">
+                {pastEvents.map((event) => (
+                  <EventRow 
+                    key={event.id} 
+                    event={event} 
+                    isExpanded={expandedEvents.has(event.id)}
+                    onToggleExpansion={() => toggleEventExpansion(event.id)}
+                    onExportCSV={() => handleExportCSV(event.id, event.name)}
+                  />
+                ))}
               </div>
             </CardContent>
           </Card>

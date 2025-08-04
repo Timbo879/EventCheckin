@@ -33,7 +33,7 @@ export const insertEventSchema = createInsertSchema(events).omit({
   createdAt: true,
 }).extend({
   date: z.string().refine((date) => {
-    const eventDate = new Date(date);
+    const eventDate = new Date(date + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return eventDate >= today;

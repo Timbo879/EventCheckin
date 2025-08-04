@@ -32,7 +32,7 @@ app.use((req, res, next) => {
 
 // Rate limiting map (simple in-memory rate limiting)
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT = 100; // requests per window
+const RATE_LIMIT = 1000; // requests per window  
 const RATE_WINDOW = 15 * 60 * 1000; // 15 minutes
 
 app.use((req, res, next) => {

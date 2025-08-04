@@ -3,8 +3,69 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// Security headers
+app.use((req, res, next) => {
+  // CORS configuration for production
+  if (app.get('env') === 'production') {
+    res.setHeader('Access-Control-Allow-Origin', req.get('origin') || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  }
+  
+  // Security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // CSP for production
+  if (app.get('env') === 'production') {
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
+    );
+  }
+  
+  next();
+});
+
+// Rate limiting map (simple in-memory rate limiting)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 100; // requests per window
+const RATE_WINDOW = 15 * 60 * 1000; // 15 minutes
+
+app.use((req, res, next) => {
+  const clientIP = req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
+  const now = Date.now();
+  
+  // Clean up old entries
+  rateLimitMap.forEach((data, ip) => {
+    if (now > data.resetTime) {
+      rateLimitMap.delete(ip);
+    }
+  });
+  
+  const current = rateLimitMap.get(clientIP) || { count: 0, resetTime: now + RATE_WINDOW };
+  
+  if (now > current.resetTime) {
+    current.count = 1;
+    current.resetTime = now + RATE_WINDOW;
+  } else {
+    current.count++;
+  }
+  
+  rateLimitMap.set(clientIP, current);
+  
+  if (current.count > RATE_LIMIT) {
+    return res.status(429).json({ message: 'Too many requests' });
+  }
+  
+  next();
+});
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 app.use((req, res, next) => {
   const start = Date.now();

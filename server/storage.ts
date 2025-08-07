@@ -1,4 +1,6 @@
-import { type Event, type InsertEvent, type Checkin, type InsertCheckin, type CheckinWithEvent } from "@shared/schema";
+import { events, checkins, type Event, type InsertEvent, type Checkin, type InsertCheckin, type CheckinWithEvent } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -92,4 +94,67 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  // Events
+  async createEvent(insertEvent: InsertEvent): Promise<Event> {
+    const [event] = await db
+      .insert(events)
+      .values(insertEvent)
+      .returning();
+    return event;
+  }
+
+  async getEvent(id: string): Promise<Event | undefined> {
+    const [event] = await db.select().from(events).where(eq(events.id, id));
+    return event || undefined;
+  }
+
+  async getEventByName(name: string): Promise<Event | undefined> {
+    const [event] = await db.select().from(events).where(eq(events.name, name));
+    return event || undefined;
+  }
+
+  async getAllEvents(): Promise<Event[]> {
+    return await db.select().from(events);
+  }
+
+  // Check-ins
+  async createCheckin(insertCheckin: InsertCheckin): Promise<Checkin> {
+    const [checkin] = await db
+      .insert(checkins)
+      .values(insertCheckin)
+      .returning();
+    return checkin;
+  }
+
+  async getCheckinsByEventId(eventId: string): Promise<Checkin[]> {
+    return await db.select().from(checkins).where(eq(checkins.eventId, eventId));
+  }
+
+  async getCheckinsWithEventDetails(eventId: string): Promise<CheckinWithEvent[]> {
+    const result = await db
+      .select()
+      .from(checkins)
+      .innerJoin(events, eq(checkins.eventId, events.id))
+      .where(eq(checkins.eventId, eventId));
+    
+    return result.map(row => ({
+      ...row.checkins,
+      event: row.events,
+    }));
+  }
+
+  async getAllCheckins(): Promise<Checkin[]> {
+    return await db.select().from(checkins);
+  }
+
+  async getCheckinByEventAndEmployee(eventId: string, employeeId: string): Promise<Checkin | undefined> {
+    const [checkin] = await db
+      .select()
+      .from(checkins)
+      .where(and(eq(checkins.eventId, eventId), eq(checkins.employeeId, employeeId)));
+    return checkin || undefined;
+  }
+}
+
+export const storage = new DatabaseStorage();

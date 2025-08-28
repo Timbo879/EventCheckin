@@ -123,6 +123,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete event
+  app.delete("/api/events/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteEvent(req.params.id);
+      if (!deleted) {
+        res.status(404).json({ message: "Event not found" });
+        return;
+      }
+      res.json({ message: "Event deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete event" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -1,22 +1,25 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Home, Users, Calendar, Download, RefreshCw, QrCode, Plus, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { Home, Users, Calendar, Download, RefreshCw, QrCode, Plus, ChevronDown, ChevronUp, Eye, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { type Event, type CheckinWithEvent, type Checkin } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface EventRowProps {
   event: Event;
   isExpanded: boolean;
   onToggleExpansion: () => void;
   onExportCSV: () => void;
+  onDeleteEvent: () => void;
 }
 
-function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV }: EventRowProps) {
+function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV, onDeleteEvent }: EventRowProps) {
   const { data: checkins = [], isLoading: checkinsLoading } = useQuery<Checkin[]>({
     queryKey: ["/api/events", event.id, "checkins"],
     enabled: isExpanded,
@@ -59,6 +62,39 @@ function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV }: EventRo
                 <Download className="mr-1 h-3 w-3" />
                 Export
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={(e) => e.stopPropagation()}
+                    data-testid={`button-delete-event-${event.id}`}
+                  >
+                    <Trash2 className="mr-1 h-3 w-3" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete the event 
+                      "<strong>{event.name}</strong>" and all associated check-ins.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel data-testid="button-cancel-delete">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={onDeleteEvent}
+                      className="bg-red-600 hover:bg-red-700"
+                      data-testid="button-confirm-delete"
+                    >
+                      Delete Event
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <Button size="sm" variant="ghost">
                 {isExpanded ? (
                   <ChevronUp className="h-4 w-4" />
@@ -132,10 +168,33 @@ function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV }: EventRo
 
 export default function AdminDashboard() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
   const { data: events = [], isLoading: eventsLoading, refetch: refetchEvents } = useQuery<Event[]>({
     queryKey: ["/api/events"],
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const response = await fetch(`/api/events/${eventId}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete event");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({
+        title: "Event Deleted",
+        description: "The event and all its check-ins have been permanently deleted.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Delete Failed",
+        description: "Failed to delete the event. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const toggleEventExpansion = (eventId: string) => {
@@ -182,6 +241,10 @@ export default function AdminDashboard() {
       title: "Data Refreshed",
       description: "Events list has been updated.",
     });
+  };
+
+  const handleDeleteEvent = (eventId: string) => {
+    deleteEventMutation.mutate(eventId);
   };
 
   if (eventsLoading) {
@@ -302,6 +365,7 @@ export default function AdminDashboard() {
                     isExpanded={expandedEvents.has(event.id)}
                     onToggleExpansion={() => toggleEventExpansion(event.id)}
                     onExportCSV={() => handleExportCSV(event.id, event.name)}
+                    onDeleteEvent={() => handleDeleteEvent(event.id)}
                   />
                 ))}
               </div>
@@ -327,6 +391,7 @@ export default function AdminDashboard() {
                     isExpanded={expandedEvents.has(event.id)}
                     onToggleExpansion={() => toggleEventExpansion(event.id)}
                     onExportCSV={() => handleExportCSV(event.id, event.name)}
+                    onDeleteEvent={() => handleDeleteEvent(event.id)}
                   />
                 ))}
               </div>

@@ -9,6 +9,7 @@ export interface IStorage {
   getEvent(id: string): Promise<Event | undefined>;
   getEventByName(name: string): Promise<Event | undefined>;
   getAllEvents(): Promise<Event[]>;
+  deleteEvent(id: string): Promise<boolean>;
   
   // Check-ins
   createCheckin(checkin: InsertCheckin): Promise<Checkin>;
@@ -92,6 +93,18 @@ export class MemStorage implements IStorage {
       (checkin) => checkin.eventId === eventId && checkin.employeeId === employeeId,
     );
   }
+
+  async deleteEvent(id: string): Promise<boolean> {
+    const deleted = this.events.delete(id);
+    // Also delete associated check-ins
+    const checkinsToDelete = Array.from(this.checkins.entries())
+      .filter(([_, checkin]) => checkin.eventId === id)
+      .map(([id, _]) => id);
+    
+    checkinsToDelete.forEach(checkinId => this.checkins.delete(checkinId));
+    
+    return deleted;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -154,6 +167,16 @@ export class DatabaseStorage implements IStorage {
       .from(checkins)
       .where(and(eq(checkins.eventId, eventId), eq(checkins.employeeId, employeeId)));
     return checkin || undefined;
+  }
+
+  async deleteEvent(id: string): Promise<boolean> {
+    // First delete all associated check-ins
+    await db.delete(checkins).where(eq(checkins.eventId, id));
+    
+    // Then delete the event
+    const result = await db.delete(events).where(eq(events.id, id));
+    
+    return (result.rowCount ?? 0) > 0;
   }
 }
 

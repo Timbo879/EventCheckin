@@ -32,6 +32,7 @@ export const insertEventSchema = createInsertSchema(events).omit({
   id: true,
   createdAt: true,
 }).extend({
+  name: z.string().min(1, "Event name is required").refine((name) => name.trim().length > 0, "Event name cannot be blank"),
   date: z.string().refine((date) => {
     const eventDate = new Date(date + 'T00:00:00');
     const today = new Date();

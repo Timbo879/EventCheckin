@@ -56,39 +56,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rate limiting map (simple in-memory rate limiting)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT = 1000; // requests per window  
-const RATE_WINDOW = 15 * 60 * 1000; // 15 minutes
-
-app.use((req, res, next) => {
-  const clientIP = req.ip || (req.socket && req.socket.remoteAddress) || 'unknown';
-  const now = Date.now();
-  
-  // Clean up old entries
-  rateLimitMap.forEach((data, ip) => {
-    if (now > data.resetTime) {
-      rateLimitMap.delete(ip);
-    }
-  });
-  
-  const current = rateLimitMap.get(clientIP) || { count: 0, resetTime: now + RATE_WINDOW };
-  
-  if (now > current.resetTime) {
-    current.count = 1;
-    current.resetTime = now + RATE_WINDOW;
-  } else {
-    current.count++;
-  }
-  
-  rateLimitMap.set(clientIP, current);
-  
-  if (current.count > RATE_LIMIT) {
-    return res.status(429).json({ message: 'Too many requests' });
-  }
-  
-  next();
-});
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));

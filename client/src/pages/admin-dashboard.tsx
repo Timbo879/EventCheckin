@@ -20,9 +20,9 @@ interface EventRowProps {
 }
 
 function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV, onDeleteEvent }: EventRowProps) {
+  // Always fetch check-ins count for the badge display
   const { data: checkins = [], isLoading: checkinsLoading } = useQuery<Checkin[]>({
     queryKey: ["/api/events", event.id, "checkins"],
-    enabled: isExpanded,
   });
 
   const sortedCheckins = checkins.sort((a, b) => 
@@ -37,7 +37,7 @@ function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV, onDeleteE
             <div className="flex items-center space-x-4">
               <div className="flex-1">
                 <h3 className="text-sm font-medium text-gray-900">{event.name}</h3>
-                <p className="text-sm text-gray-600">{new Date(event.date).toLocaleDateString()}</p>
+                <p className="text-sm text-gray-600">{new Date(event.date + 'T12:00:00').toLocaleDateString()}</p>
               </div>
               <Badge variant="outline" className="ml-2">
                 {checkins.length} check-ins
@@ -261,8 +261,8 @@ export default function AdminDashboard() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const upcomingEvents = events.filter(event => new Date(event.date) >= today);
-  const pastEvents = events.filter(event => new Date(event.date) < today);
+  const upcomingEvents = events.filter(event => new Date(event.date + 'T12:00:00') >= today);
+  const pastEvents = events.filter(event => new Date(event.date + 'T12:00:00') < today);
 
   return (
     <div className="min-h-screen bg-gray-50">

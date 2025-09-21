@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Home, Users, Calendar, Download, RefreshCw, QrCode, Plus, ChevronDown, ChevronUp, Eye, Trash2 } from "lucide-react";
+import { Home, Users, Calendar, Download, RefreshCw, QrCode, Plus, ChevronDown, ChevronUp, Eye, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,9 +17,10 @@ interface EventRowProps {
   onToggleExpansion: () => void;
   onExportCSV: () => void;
   onDeleteEvent: () => void;
+  onToggleArchive: () => void;
 }
 
-function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV, onDeleteEvent }: EventRowProps) {
+function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV, onDeleteEvent, onToggleArchive }: EventRowProps) {
   // Always fetch check-ins count for the badge display
   const { data: checkins = [], isLoading: checkinsLoading } = useQuery<Checkin[]>({
     queryKey: ["/api/events", event.id, "checkins"],
@@ -36,7 +37,16 @@ function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV, onDeleteE
           <div className="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer">
             <div className="flex items-center space-x-4">
               <div className="flex-1">
-                <h3 className="text-sm font-medium text-gray-900">{event.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className={`text-sm font-medium ${event.archived ? 'text-gray-500' : 'text-gray-900'}`}>
+                    {event.name}
+                  </h3>
+                  {event.archived && (
+                    <Badge variant="secondary" className="text-xs">
+                      Archived
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-sm text-gray-600">{new Date(event.date + 'T12:00:00').toLocaleDateString()}</p>
               </div>
               <Badge variant="outline" className="ml-2">
@@ -61,6 +71,28 @@ function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV, onDeleteE
               >
                 <Download className="mr-1 h-3 w-3" />
                 Export
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleArchive();
+                }}
+                className={event.archived ? "text-green-600 hover:text-green-700 hover:bg-green-50" : "text-orange-600 hover:text-orange-700 hover:bg-orange-50"}
+                data-testid={`button-${event.archived ? 'unarchive' : 'archive'}-event-${event.id}`}
+              >
+                {event.archived ? (
+                  <>
+                    <ArchiveRestore className="mr-1 h-3 w-3" />
+                    Unarchive
+                  </>
+                ) : (
+                  <>
+                    <Archive className="mr-1 h-3 w-3" />
+                    Archive
+                  </>
+                )}
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -197,6 +229,34 @@ export default function AdminDashboard() {
     },
   });
 
+  const archiveEventMutation = useMutation({
+    mutationFn: async ({ eventId, archived }: { eventId: string; archived: boolean }) => {
+      const response = await fetch(`/api/events/${eventId}/archive`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ archived }),
+      });
+      if (!response.ok) throw new Error("Failed to update archive status");
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events", variables.eventId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events", variables.eventId, "checkins"] });
+      toast({
+        title: variables.archived ? "Event Archived" : "Event Unarchived",
+        description: variables.archived ? "Event has been archived. Check-ins are now disabled." : "Event has been unarchived. Check-ins are now enabled.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Archive Failed",
+        description: "Failed to update archive status. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const toggleEventExpansion = (eventId: string) => {
     const newExpanded = new Set(expandedEvents);
     if (newExpanded.has(eventId)) {
@@ -248,6 +308,10 @@ export default function AdminDashboard() {
 
   const handleDeleteEvent = (eventId: string) => {
     deleteEventMutation.mutate(eventId);
+  };
+
+  const handleToggleArchive = (eventId: string, currentArchivedStatus: boolean) => {
+    archiveEventMutation.mutate({ eventId, archived: !currentArchivedStatus });
   };
 
   if (eventsLoading) {
@@ -369,6 +433,7 @@ export default function AdminDashboard() {
                     onToggleExpansion={() => toggleEventExpansion(event.id)}
                     onExportCSV={() => handleExportCSV(event.id, event.name, event.date)}
                     onDeleteEvent={() => handleDeleteEvent(event.id)}
+                    onToggleArchive={() => handleToggleArchive(event.id, event.archived)}
                   />
                 ))}
               </div>
@@ -395,6 +460,7 @@ export default function AdminDashboard() {
                     onToggleExpansion={() => toggleEventExpansion(event.id)}
                     onExportCSV={() => handleExportCSV(event.id, event.name, event.date)}
                     onDeleteEvent={() => handleDeleteEvent(event.id)}
+                    onToggleArchive={() => handleToggleArchive(event.id, event.archived)}
                   />
                 ))}
               </div>

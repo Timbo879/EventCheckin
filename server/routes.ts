@@ -60,6 +60,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // Check if event is archived
+      if (event.archived) {
+        res.status(403).json({ message: "Check-ins are closed for this event" });
+        return;
+      }
+
       // Check for duplicate check-in
       const existingCheckin = await storage.getCheckinByEventAndEmployee(checkinData.eventId, checkinData.employeeId);
       if (existingCheckin) {
@@ -123,6 +129,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(csv);
     } catch (error) {
       res.status(500).json({ message: "Failed to export check-ins" });
+    }
+  });
+
+  // Toggle event archive status
+  app.patch("/api/events/:id/archive", async (req, res) => {
+    try {
+      const archiveSchema = z.object({ archived: z.boolean() });
+      const result = archiveSchema.safeParse(req.body);
+      if (!result.success) {
+        res.status(400).json({ message: "archived field must be a boolean" });
+        return;
+      }
+
+      const { archived } = result.data;
+
+      const updatedEvent = await storage.updateEventArchiveStatus(req.params.id, archived);
+      if (!updatedEvent) {
+        res.status(404).json({ message: "Event not found" });
+        return;
+      }
+      res.json(updatedEvent);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update archive status" });
     }
   });
 

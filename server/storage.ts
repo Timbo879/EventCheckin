@@ -10,6 +10,7 @@ export interface IStorage {
   getEventByName(name: string): Promise<Event | undefined>;
   getAllEvents(): Promise<Event[]>;
   deleteEvent(id: string): Promise<boolean>;
+  updateEventArchiveStatus(id: string, archived: boolean): Promise<Event | undefined>;
   
   // Check-ins
   createCheckin(checkin: InsertCheckin): Promise<Checkin>;
@@ -35,6 +36,7 @@ export class MemStorage implements IStorage {
       id,
       passwordProtected: insertEvent.passwordProtected ?? false,
       adminPassword: insertEvent.adminPassword ?? null,
+      archived: insertEvent.archived ?? false,
       createdAt: new Date(),
     };
     this.events.set(id, event);
@@ -104,6 +106,15 @@ export class MemStorage implements IStorage {
     checkinsToDelete.forEach(checkinId => this.checkins.delete(checkinId));
     
     return deleted;
+  }
+
+  async updateEventArchiveStatus(id: string, archived: boolean): Promise<Event | undefined> {
+    const event = this.events.get(id);
+    if (!event) return undefined;
+    
+    const updatedEvent = { ...event, archived };
+    this.events.set(id, updatedEvent);
+    return updatedEvent;
   }
 }
 
@@ -177,6 +188,15 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(events).where(eq(events.id, id));
     
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async updateEventArchiveStatus(id: string, archived: boolean): Promise<Event | undefined> {
+    const [updatedEvent] = await db
+      .update(events)
+      .set({ archived })
+      .where(eq(events.id, id))
+      .returning();
+    return updatedEvent || undefined;
   }
 }
 

@@ -3,7 +3,7 @@ import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -95,6 +95,45 @@ export default function CheckIn() {
             </Alert>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // Check if event is archived
+  if (event.archived) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8 max-w-md">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gray-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Archive className="text-white text-2xl h-8 w-8" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">B-Here Check-in</h1>
+            <p className="text-gray-600">{event.name}</p>
+            <p className="text-sm text-gray-500">{event.date}</p>
+          </div>
+
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <div className="w-16 h-16 bg-gray-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Archive className="text-white text-2xl h-8 w-8" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Check-in is Closed</h3>
+              <p className="text-gray-600 mb-4">
+                Check-in is closed for this event.
+              </p>
+              <p className="text-sm text-gray-500">
+                Please contact event organizers if you need assistance.
+              </p>
+            </CardContent>
+          </Card>
+
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-500">
+              Having trouble? Contact event organizers for assistance.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }

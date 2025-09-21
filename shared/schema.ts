@@ -9,6 +9,7 @@ export const events = pgTable("events", {
   date: text("date").notNull(),
   passwordProtected: boolean("password_protected").notNull().default(false),
   adminPassword: text("admin_password"),
+  archived: boolean("archived").notNull().default(false),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 

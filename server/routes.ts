@@ -115,8 +115,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const csv = csvHeader + csvData;
       
+      // Format date for filename (YYYY-MM-DD)
+      const formattedDate = new Date(checkins[0].event.date + 'T12:00:00').toISOString().split('T')[0];
+      
       res.setHeader("Content-Type", "text/csv");
-      res.setHeader("Content-Disposition", `attachment; filename="${checkins[0].event.name}_checkins.csv"`);
+      res.setHeader("Content-Disposition", `attachment; filename="${checkins[0].event.name}_${formattedDate}_checkins.csv"`);
       res.send(csv);
     } catch (error) {
       res.status(500).json({ message: "Failed to export check-ins" });

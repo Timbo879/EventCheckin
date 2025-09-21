@@ -207,7 +207,7 @@ export default function AdminDashboard() {
     setExpandedEvents(newExpanded);
   };
 
-  const handleExportCSV = async (eventId: string, eventName: string) => {
+  const handleExportCSV = async (eventId: string, eventName: string, eventDate: string) => {
     try {
       const response = await fetch(`/api/events/${eventId}/export`);
       if (!response.ok) {
@@ -218,7 +218,10 @@ export default function AdminDashboard() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${eventName}_checkins.csv`;
+      
+      // Format date for filename (YYYY-MM-DD)
+      const formattedDate = new Date(eventDate + 'T12:00:00').toISOString().split('T')[0];
+      link.download = `${eventName}_${formattedDate}_checkins.csv`;
       link.click();
       window.URL.revokeObjectURL(url);
       
@@ -364,7 +367,7 @@ export default function AdminDashboard() {
                     event={event} 
                     isExpanded={expandedEvents.has(event.id)}
                     onToggleExpansion={() => toggleEventExpansion(event.id)}
-                    onExportCSV={() => handleExportCSV(event.id, event.name)}
+                    onExportCSV={() => handleExportCSV(event.id, event.name, event.date)}
                     onDeleteEvent={() => handleDeleteEvent(event.id)}
                   />
                 ))}
@@ -390,7 +393,7 @@ export default function AdminDashboard() {
                     event={event} 
                     isExpanded={expandedEvents.has(event.id)}
                     onToggleExpansion={() => toggleEventExpansion(event.id)}
-                    onExportCSV={() => handleExportCSV(event.id, event.name)}
+                    onExportCSV={() => handleExportCSV(event.id, event.name, event.date)}
                     onDeleteEvent={() => handleDeleteEvent(event.id)}
                   />
                 ))}

@@ -118,12 +118,12 @@ export default function CheckIn() {
               <div className="w-16 h-16 bg-gray-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Archive className="text-white text-2xl h-8 w-8" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Check-in is Closed</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Check-In Closed</h3>
               <p className="text-gray-600 mb-4">
-                Check-in is closed for this event.
+                This event is no longer accepting check-ins.
               </p>
               <p className="text-sm text-gray-500">
-                Please contact event organizers if you need assistance.
+                If you believe this is an error or you need assistance, please contact the event organizer.
               </p>
             </CardContent>
           </Card>

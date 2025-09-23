@@ -6,12 +6,47 @@ const app = express();
 
 // Security headers
 app.use((req, res, next) => {
-  // CORS configuration for production
+  // Secure CORS configuration
+  const origin = req.get('origin');
+  const host = req.get('host');
+  
   if (app.get('env') === 'production') {
-    res.setHeader('Access-Control-Allow-Origin', req.get('origin') || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // Only allow same-origin requests to prevent cross-origin data exposure
+    if (origin && host) {
+      try {
+        const originUrl = new URL(origin);
+        const originHost = originUrl.host;
+        if (originHost === host) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        }
+      } catch (e) {
+        // Invalid origin URL, don't set CORS headers
+      }
+    }
+    // No CORS headers for direct access (no origin header)
+  } else {
+    // Development: Allow localhost and Replit domains with strict matching
+    if (origin) {
+      try {
+        const originUrl = new URL(origin);
+        const originHost = originUrl.hostname;
+        if (originHost === 'localhost' || originHost === '127.0.0.1' || 
+            originHost.endsWith('.replit.dev') || originHost.endsWith('.repl.co')) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+        }
+      } catch (e) {
+        // Invalid origin URL, don't set CORS headers
+      }
+    }
+    // No CORS headers for direct access (no origin) - even in development
   }
+  
+  // Add Vary header to prevent cache poisoning
+  res.setHeader('Vary', 'Origin');
   
   // Security headers
   res.setHeader('X-Content-Type-Options', 'nosniff');

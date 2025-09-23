@@ -4,6 +4,25 @@ import { storage } from "./storage";
 import { insertEventSchema, insertCheckinSchema } from "@shared/schema";
 import { z } from "zod";
 
+// Sanitize CSV cell data to prevent formula injection
+function sanitizeCsvCell(value: string): string {
+  if (!value) return value;
+  
+  // Escape cells starting with dangerous characters (including after whitespace)
+  if (/^[\s\t]*[=+\-@]/.test(value)) {
+    return `'${value}`;
+  }
+  
+  // Wrap in quotes and escape embedded quotes for proper CSV formatting
+  const escapedValue = value.replace(/"/g, '""');
+  return `"${escapedValue}"`;
+}
+
+// Sanitize filename to prevent header injection
+function sanitizeFilename(filename: string): string {
+  return filename.replace(/[^a-zA-Z0-9_]/g, '_').trim();
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create event
   app.post("/api/events", async (req, res) => {
@@ -116,7 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const csvHeader = "Employee ID,Check-in Time,Event Name\n";
       const csvData = checkins.map(checkin => 
-        `${checkin.employeeId},${checkin.timestamp.toISOString()},${checkin.event.name}`
+        `${sanitizeCsvCell(checkin.employeeId)},${sanitizeCsvCell(checkin.timestamp.toISOString())},${sanitizeCsvCell(checkin.event.name)}`
       ).join("\n");
       
       const csv = csvHeader + csvData;
@@ -124,8 +143,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Format date for filename (YYYY-MM-DD)
       const formattedDate = new Date(checkins[0].event.date + 'T12:00:00').toISOString().split('T')[0];
       
+      // Sanitize filename to prevent header injection
+      const sanitizedEventName = sanitizeFilename(checkins[0].event.name);
+      
       res.setHeader("Content-Type", "text/csv");
-      res.setHeader("Content-Disposition", `attachment; filename="${checkins[0].event.name}_${formattedDate}_checkins.csv"`);
+      res.setHeader("Content-Disposition", `attachment; filename="${sanitizedEventName}_${formattedDate}_checkins.csv"`);
       res.send(csv);
     } catch (error) {
       res.status(500).json({ message: "Failed to export check-ins" });

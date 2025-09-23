@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEventSchema, insertCheckinSchema } from "@shared/schema";
+import { insertEventSchema, insertCheckinSchema, updateEventSchema } from "@shared/schema";
 import { z } from "zod";
 
 // Sanitize CSV cell data to prevent formula injection
@@ -151,6 +151,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(csv);
     } catch (error) {
       res.status(500).json({ message: "Failed to export check-ins" });
+    }
+  });
+
+  // Update event
+  app.patch("/api/events/:id", async (req, res) => {
+    try {
+      const updateData = updateEventSchema.parse(req.body);
+      const updatedEvent = await storage.updateEvent(req.params.id, updateData);
+      if (!updatedEvent) {
+        res.status(404).json({ message: "Event not found" });
+        return;
+      }
+      res.json(updatedEvent);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid event data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update event" });
+      }
     }
   });
 

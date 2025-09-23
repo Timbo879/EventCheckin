@@ -26,7 +26,9 @@ export const insertCheckinSchema = createInsertSchema(checkins).omit({
   id: true,
   timestamp: true,
 }).extend({
-  employeeId: z.string().regex(/^\d{6}$/, "Employee ID must be exactly 6 digits"),
+  employeeId: z.string()
+    .regex(/^\d{6}$/, "Employee ID must be exactly 6 digits")
+    .refine((id) => id !== "000000", "Employee ID cannot be 000000"),
 });
 
 export const insertEventSchema = createInsertSchema(events).omit({

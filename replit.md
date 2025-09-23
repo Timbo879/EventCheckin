@@ -10,6 +10,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+- **September 23, 2025**: Added employee ID validation to prevent "000000" check-ins
 - **August 3, 2025**: Complete rebrand to "B-Here" throughout the application
 - **August 3, 2025**: Removed all password protection - admin dashboard now open access
 - **August 3, 2025**: Added duplicate check-in prevention with friendly error messages

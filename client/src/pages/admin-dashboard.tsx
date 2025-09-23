@@ -1,15 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Home, Users, Calendar, Download, RefreshCw, QrCode, Plus, ChevronDown, ChevronUp, Eye, Trash2, Archive, ArchiveRestore } from "lucide-react";
+import { Home, Users, Calendar, Download, RefreshCw, QrCode, Plus, ChevronDown, ChevronUp, Eye, Trash2, Archive, ArchiveRestore, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { type Event, type CheckinWithEvent, type Checkin } from "@shared/schema";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { type Event, type CheckinWithEvent, type Checkin, updateEventSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 interface EventRowProps {
   event: Event;
@@ -18,9 +24,27 @@ interface EventRowProps {
   onExportCSV: () => void;
   onDeleteEvent: () => void;
   onToggleArchive: () => void;
+  onEditEvent: (eventData: z.infer<typeof updateEventSchema>) => void;
 }
 
-function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV, onDeleteEvent, onToggleArchive }: EventRowProps) {
+function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV, onDeleteEvent, onToggleArchive, onEditEvent }: EventRowProps) {
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const form = useForm({
+    resolver: zodResolver(updateEventSchema),
+    defaultValues: {
+      name: event.name,
+      date: event.date,
+    },
+  });
+
+  const handleEditSubmit = (data: z.infer<typeof updateEventSchema>) => {
+    onEditEvent(data);
+    setIsEditOpen(false);
+    form.reset({
+      name: event.name,
+      date: event.date,
+    });
+  };
   // Always fetch check-ins count for the badge display
   const { data: checkins = [], isLoading: checkinsLoading } = useQuery<Checkin[]>({
     queryKey: ["/api/events", event.id, "checkins"],
@@ -72,6 +96,67 @@ function EventRow({ event, isExpanded, onToggleExpansion, onExportCSV, onDeleteE
                 <Download className="mr-1 h-3 w-3" />
                 Export
               </Button>
+              <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => e.stopPropagation()}
+                    data-testid={`button-edit-event-${event.id}`}
+                  >
+                    <Edit className="mr-1 h-3 w-3" />
+                    Edit
+                  </Button>
+                </DialogTrigger>
+                <DialogContent onClick={(e) => e.stopPropagation()}>
+                  <DialogHeader>
+                    <DialogTitle>Edit Event</DialogTitle>
+                  </DialogHeader>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(handleEditSubmit)} className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Event Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} data-testid="input-edit-event-name" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="date"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Event Date</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="date" data-testid="input-edit-event-date" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end space-x-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsEditOpen(false)}
+                          data-testid="button-cancel-edit"
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit" data-testid="button-save-edit">
+                          Save Changes
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
               <Button
                 size="sm"
                 variant="outline"
@@ -314,6 +399,31 @@ export default function AdminDashboard() {
     archiveEventMutation.mutate({ eventId, archived: !currentArchivedStatus });
   };
 
+  const editEventMutation = useMutation({
+    mutationFn: async ({ eventId, data }: { eventId: string; data: z.infer<typeof updateEventSchema> }) => {
+      const response = await apiRequest("PATCH", `/api/events/${eventId}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({
+        title: "Event Updated",
+        description: "Event has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update event. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditEvent = (eventId: string, data: z.infer<typeof updateEventSchema>) => {
+    editEventMutation.mutate({ eventId, data });
+  };
+
   if (eventsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -434,6 +544,7 @@ export default function AdminDashboard() {
                     onExportCSV={() => handleExportCSV(event.id, event.name, event.date)}
                     onDeleteEvent={() => handleDeleteEvent(event.id)}
                     onToggleArchive={() => handleToggleArchive(event.id, event.archived)}
+                    onEditEvent={(data) => handleEditEvent(event.id, data)}
                   />
                 ))}
               </div>
@@ -461,6 +572,7 @@ export default function AdminDashboard() {
                     onExportCSV={() => handleExportCSV(event.id, event.name, event.date)}
                     onDeleteEvent={() => handleDeleteEvent(event.id)}
                     onToggleArchive={() => handleToggleArchive(event.id, event.archived)}
+                    onEditEvent={(data) => handleEditEvent(event.id, data)}
                   />
                 ))}
               </div>

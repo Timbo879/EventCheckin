@@ -44,7 +44,13 @@ export const insertEventSchema = createInsertSchema(events).omit({
   }, "Event date must be today or in the future"),
 });
 
+export const updateEventSchema = insertEventSchema.partial().pick({
+  name: true,
+  date: true,
+});
+
 export type InsertEvent = z.infer<typeof insertEventSchema>;
+export type UpdateEvent = z.infer<typeof updateEventSchema>;
 export type Event = typeof events.$inferSelect;
 export type InsertCheckin = z.infer<typeof insertCheckinSchema>;
 export type Checkin = typeof checkins.$inferSelect;

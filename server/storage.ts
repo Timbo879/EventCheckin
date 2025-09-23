@@ -10,6 +10,7 @@ export interface IStorage {
   getEventByName(name: string): Promise<Event | undefined>;
   getAllEvents(): Promise<Event[]>;
   deleteEvent(id: string): Promise<boolean>;
+  updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event | undefined>;
   updateEventArchiveStatus(id: string, archived: boolean): Promise<Event | undefined>;
   
   // Check-ins
@@ -108,6 +109,15 @@ export class MemStorage implements IStorage {
     return deleted;
   }
 
+  async updateEvent(id: string, updates: Partial<InsertEvent>): Promise<Event | undefined> {
+    const event = this.events.get(id);
+    if (!event) return undefined;
+    
+    const updatedEvent = { ...event, ...updates };
+    this.events.set(id, updatedEvent);
+    return updatedEvent;
+  }
+
   async updateEventArchiveStatus(id: string, archived: boolean): Promise<Event | undefined> {
     const event = this.events.get(id);
     if (!event) return undefined;
@@ -188,6 +198,15 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(events).where(eq(events.id, id));
     
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async updateEvent(id: string, updates: Partial<InsertEvent>): Promise<Event | undefined> {
+    const [updatedEvent] = await db
+      .update(events)
+      .set(updates)
+      .where(eq(events.id, id))
+      .returning();
+    return updatedEvent || undefined;
   }
 
   async updateEventArchiveStatus(id: string, archived: boolean): Promise<Event | undefined> {
